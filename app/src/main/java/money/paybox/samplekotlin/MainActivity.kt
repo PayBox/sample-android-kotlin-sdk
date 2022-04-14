@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity(), WebListener {
         paymentView.listener = this
         sdk.config().testMode(true)  //По умолчанию тестовый режим включен
         //Выбор платежной системы:
-        sdk.config().setPaymentSystem(PaymentSystem.EPAYWEBKZT)
+        sdk.config().setPaymentSystem(PaymentSystem.NONE)
         //Выбор валюты платежа:
         sdk.config().setCurrencyCode("KZT")
         //Активация автоклиринга:

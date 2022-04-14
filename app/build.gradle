@@ -2,6 +2,7 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
 }
+apply plugin: 'kotlin-android'
 
 android {
     compileSdk 31
@@ -39,7 +40,7 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.1'
 
     //Указываем зависимость на Kotlin SDK
-    implementation 'com.github.PayBox:kotlin-paybox-sdk:0.9.4'
+    implementation 'com.github.paybox:kotlin-paybox-sdk:0.9.9'
 
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
