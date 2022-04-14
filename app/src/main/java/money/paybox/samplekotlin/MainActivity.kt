@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity(), WebListener {
 
             sdk.createPayment(amount, description, orderId, userId, extraParams) {
                     payment, error -> Log.e("initPAY", error?.description ?: "")
-
+                paymentView.visibility = View.GONE
             }
         }
 
