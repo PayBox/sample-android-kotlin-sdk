@@ -74,6 +74,8 @@ class MainActivity : AppCompatActivity(), WebListener {
         sdk.config().setRefundUrl("http://test.paybox.kz/")
         sdk.config().setClearingUrl("http://test.paybox.kz/")
         sdk.config().setRequestMethod(RequestMethod.GET)
+        //Для выбора Frame вместо платежной страницы
+        sdk.config().setFrameRequired(true) //false по умолчанию
 
         //Инициализация нового платежа
         findViewById<Button>(R.id.buttonInitPayment).setOnClickListener {
