@@ -48,14 +48,24 @@
         app:layout_constraintTop_toTopOf="@id/guideline2" />
 
     <Button
+        android:id="@+id/buttonDirectPayment"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Безакцептный платеж"
+        app:layout_constraintEnd_toEndOf="@+id/buttonInitPayment"
+        app:layout_constraintStart_toStartOf="@+id/buttonInitPayment"
+        app:layout_constraintTop_toBottomOf="@+id/buttonInitPayment" />
+
+    <Button
         android:id="@+id/buttonShowCards"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Список карт"
-        app:layout_constraintEnd_toEndOf="@+id/buttonInitPayment"
-        app:layout_constraintStart_toStartOf="@+id/buttonInitPayment"
-        app:layout_constraintTop_toBottomOf="@+id/buttonInitPayment" />
+        app:layout_constraintEnd_toEndOf="@+id/buttonDirectPayment"
+        app:layout_constraintStart_toStartOf="@+id/buttonDirectPayment"
+        app:layout_constraintTop_toBottomOf="@+id/buttonDirectPayment" />
 
     <Button
         android:id="@+id/buttonAddCard"

@@ -16,6 +16,7 @@ import com.google.android.material.snackbar.Snackbar
 import money.paybox.payboxsdk.PayboxSdk
 import money.paybox.payboxsdk.config.Language
 import money.paybox.payboxsdk.config.PaymentSystem
+import money.paybox.payboxsdk.config.Region
 import money.paybox.payboxsdk.config.RequestMethod
 import money.paybox.payboxsdk.interfaces.WebListener
 import money.paybox.payboxsdk.view.PaymentView
@@ -48,6 +49,8 @@ class MainActivity : AppCompatActivity(), WebListener {
         sdk.setPaymentView(paymentView)
         paymentView.listener = this
         sdk.config().testMode(true)  //По умолчанию тестовый режим включен
+        //Выбор региона
+        sdk.config().setRegion(Region.DEFAULT) //По умолчанию установлен Region.DEFAULT
         //Выбор платежной системы:
         sdk.config().setPaymentSystem(PaymentSystem.NONE)
         //Выбор валюты платежа:
@@ -94,6 +97,29 @@ class MainActivity : AppCompatActivity(), WebListener {
             }
         }
 
+        findViewById<Button>(R.id.buttonDirectPayment).setOnClickListener {
+            val amount = 10f
+            val userId = "1234"
+            val cardToken = "your_card_token"
+            val description = "some description"
+            val orderId = "1234"
+            val extraParams = null
+
+            outputTextView.text = ""
+            paymentView.visibility = View.VISIBLE
+
+            sdk.createCardPayment(amount, userId, cardToken, description, orderId, extraParams) {
+                    payment, error -> Log.e("initDirectPAY", error?.description ?: "")
+
+                sdk.createNonAcceptancePayment(payment?.paymentId ?: 0) {
+                    payment2, error2 ->  Log.e("makeDirectPAY", error2?.description ?: "")
+                    Log.e("initPAY", payment2?.status ?: "")
+                }
+
+                paymentView.visibility = View.GONE
+            }
+        }
+
         //Отображение списка привязанных карт
         findViewById<Button>(R.id.buttonShowCards).setOnClickListener {
             val userId = "1234"
@@ -127,6 +153,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                                 Card hash = ${card.cardhash}
                                 Card ID = ${card.cardId}
                                 Recurring profile = ${card.recurringProfile}
+                                Token = ${card.cardToken}
                                 Created At = ${card.date}
                                 Status = ${card.status}
                                 """.trimIndent()
