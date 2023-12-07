@@ -1,6 +1,8 @@
 package money.paybox.samplekotlin
 
+import android.app.Activity
 import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
 import android.util.Log
@@ -8,10 +10,14 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
+import com.google.android.gms.wallet.AutoResolveHelper
+import com.google.android.gms.wallet.PaymentData
+import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.material.snackbar.Snackbar
 import money.paybox.payboxsdk.PayboxSdk
 import money.paybox.payboxsdk.config.Language
@@ -34,6 +40,8 @@ class MainActivity : AppCompatActivity(), WebListener {
     //Если email или phone не указан, то выбор будет предложен на сайте платежного гейта
     private val email = "user@mail.com"
     private val phone = "77012345678"
+    lateinit var googlePayButton: Button
+    private lateinit var googlePaymentsClient: PaymentsClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +52,11 @@ class MainActivity : AppCompatActivity(), WebListener {
 
         paymentView = findViewById(R.id.paymentView)
         ViewCompat.setTranslationZ(paymentView, 10f)
+        googlePayButton = findViewById(R.id.buttonPaymentByGoogle)
+        googlePaymentsClient = GooglePaymentUtils.createGoogleApiClientForPay(this)
+        GooglePaymentUtils.checkIsReadyGooglePay(googlePaymentsClient, callback = {
+            setGooglePayAvailable(it)
+        })
 
         val sdk = PayboxSdk.initialize(merchantId, secretKey)
         sdk.setPaymentView(paymentView)
@@ -241,6 +254,26 @@ class MainActivity : AppCompatActivity(), WebListener {
 
             alert.show()
         }
+        val price =10
+        googlePayButton.setOnClickListener {
+            val request = GooglePaymentUtils.createPaymentDataRequest(price.toString())
+            AutoResolveHelper.resolveTask<PaymentData>(
+                googlePaymentsClient.loadPaymentData(request),
+                this,
+                REQUEST_CODE
+            )
+        }
+    }
+    private fun setGooglePayAvailable(available: Boolean) {
+        if (available) {
+            googlePayButton.visibility = View.VISIBLE
+        } else {
+            Toast.makeText(
+                this,
+                "К сожалению, Google Pay недоступен на этом устройстве.",
+                Toast.LENGTH_LONG
+            ).show();
+        }
     }
 
     private fun showError(text: String) {
@@ -267,6 +300,42 @@ class MainActivity : AppCompatActivity(), WebListener {
             startActivity(intent)
         } else {
             super.onBackPressed()
+        }
+    }
+    companion object {
+        const val REQUEST_CODE = 123
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when (requestCode) {
+            REQUEST_CODE -> {
+                when (resultCode) {
+                    Activity.RESULT_OK -> {
+                        if (data == null)
+                            return
+                        val paymentData = PaymentData.getFromIntent(data)
+                        val token = paymentData?.paymentMethodToken?.token ?: return
+                        Log.i("GOOGLE PAY TOKEN:","$token")
+                        // val paymentService = PaymentService()
+                        //  paymentService.sendPaymentToken(token)
+                    }
+
+                    Activity.RESULT_CANCELED -> {
+
+                    }
+                    AutoResolveHelper.RESULT_ERROR -> {
+                        if (data == null)
+                            return
+                        val status = AutoResolveHelper.getStatusFromIntent(data)
+                        Log.e("GOOGLE PAY", "Load payment data has failed with status: $status")
+                    }
+
+                    else -> {}
+                }
+            }
+
+            else -> {}
         }
     }
 }
