@@ -1,6 +1,7 @@
 package money.paybox.samplekotlin
 
 import android.app.Activity
+import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
@@ -16,8 +17,18 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import com.google.android.gms.wallet.AutoResolveHelper
+import com.google.android.gms.wallet.CardRequirements
 import com.google.android.gms.wallet.PaymentData
+import com.google.android.gms.wallet.PaymentDataRequest
+import com.google.android.gms.wallet.PaymentMethodTokenizationParameters
 import com.google.android.gms.wallet.PaymentsClient
+import com.google.android.gms.wallet.TransactionInfo
+import com.google.android.gms.wallet.Wallet
+import com.google.android.gms.wallet.WalletConstants
+import com.google.android.gms.wallet.button.ButtonConstants.ButtonTheme
+import com.google.android.gms.wallet.button.ButtonConstants.ButtonType
+import com.google.android.gms.wallet.button.ButtonOptions
+import com.google.android.gms.wallet.button.PayButton
 import com.google.android.material.snackbar.Snackbar
 import money.paybox.payboxsdk.PayboxSdk
 import money.paybox.payboxsdk.config.Language
@@ -26,42 +37,43 @@ import money.paybox.payboxsdk.config.Region
 import money.paybox.payboxsdk.config.RequestMethod
 import money.paybox.payboxsdk.interfaces.WebListener
 import money.paybox.payboxsdk.view.PaymentView
-import java.lang.Exception
+import java.util.Arrays
+
 
 class MainActivity : AppCompatActivity(), WebListener {
     lateinit var loaderView: View
     lateinit var outputTextView: TextView
     lateinit var paymentView: PaymentView
-
     //Необходимо заменить тестовый secretKey и merchantId на свой
-    private val secretKey = "UnPLLvWsuXPyC3wd"
-    private val merchantId = 503623
+    private val secretKey = "mQKzUjrDqdIxViLJ"
+    private val merchantId = 550624
 
     //Если email или phone не указан, то выбор будет предложен на сайте платежного гейта
     private val email = "user@mail.com"
     private val phone = "77012345678"
-    lateinit var googlePayButton: Button
+    lateinit var googlePayButton: PayButton
     private lateinit var googlePaymentsClient: PaymentsClient
-
+    lateinit var url :String
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         loaderView = findViewById(R.id.loaderView)
         outputTextView = findViewById(R.id.outputTextView)
-
         paymentView = findViewById(R.id.paymentView)
         ViewCompat.setTranslationZ(paymentView, 10f)
         googlePayButton = findViewById(R.id.buttonPaymentByGoogle)
-        googlePaymentsClient = GooglePaymentUtils.createGoogleApiClientForPay(this)
-        GooglePaymentUtils.checkIsReadyGooglePay(googlePaymentsClient, callback = {
-            setGooglePayAvailable(it)
-        })
+        googlePaymentsClient = createGoogleApiClientForPay(this)
+
+        googlePayButton.initialize(ButtonOptions.newBuilder()
+            .setButtonType(ButtonType.CHECKOUT)
+            .setButtonTheme(ButtonTheme.LIGHT)
+            .build())
 
         val sdk = PayboxSdk.initialize(merchantId, secretKey)
         sdk.setPaymentView(paymentView)
         paymentView.listener = this
-        sdk.config().testMode(true)  //По умолчанию тестовый режим включен
+        sdk.config().testMode(false)  //По умолчанию тестовый режим включен
         //Выбор региона
         sdk.config().setRegion(Region.DEFAULT) //По умолчанию установлен Region.DEFAULT
         //Выбор платежной системы:
@@ -91,7 +103,7 @@ class MainActivity : AppCompatActivity(), WebListener {
         sdk.config().setClearingUrl("http://test.paybox.kz/")
         sdk.config().setRequestMethod(RequestMethod.GET)
         //Для выбора Frame вместо платежной страницы
-        sdk.config().setFrameRequired(true) //false по умолчанию
+        sdk.config().setFrameRequired(false) //false по умолчанию
 
         //Инициализация нового платежа
         findViewById<Button>(R.id.buttonInitPayment).setOnClickListener {
@@ -254,26 +266,70 @@ class MainActivity : AppCompatActivity(), WebListener {
 
             alert.show()
         }
-        val price =10
         googlePayButton.setOnClickListener {
-            val request = GooglePaymentUtils.createPaymentDataRequest(price.toString())
-            AutoResolveHelper.resolveTask<PaymentData>(
-                googlePaymentsClient.loadPaymentData(request),
-                this,
-                REQUEST_CODE
-            )
+            val amount = 10f
+            val description = "some description"
+            val orderId = "1234"
+            val userId = "1234"
+            val extraParams = null
+            sdk.createGooglePayment(amount, description, orderId, userId, extraParams) { payment, error ->
+                url = payment?.redirectUrl.toString()
+                AutoResolveHelper.resolveTask<PaymentData>(
+                    googlePaymentsClient.loadPaymentData(createPaymentDataRequest()),
+                    this,
+                    REQUEST_CODE
+                )
+            }
         }
     }
-    private fun setGooglePayAvailable(available: Boolean) {
-        if (available) {
-            googlePayButton.visibility = View.VISIBLE
-        } else {
-            Toast.makeText(
-                this,
-                "К сожалению, Google Pay недоступен на этом устройстве.",
-                Toast.LENGTH_LONG
-            ).show();
-        }
+
+    fun createGoogleApiClientForPay(context: Context): PaymentsClient =
+        Wallet.getPaymentsClient(
+            context,
+            Wallet.WalletOptions.Builder()
+                .setEnvironment(WalletConstants.ENVIRONMENT_TEST)
+                .setTheme(WalletConstants.THEME_LIGHT)
+                .build()
+        )
+
+    private fun createPaymentDataRequest(): PaymentDataRequest {
+        val request = PaymentDataRequest.newBuilder()
+            .setPhoneNumberRequired(false)
+            .setEmailRequired(true)
+            .setTransactionInfo(
+                TransactionInfo.newBuilder()
+                    .setTotalPriceStatus(WalletConstants.TOTAL_PRICE_STATUS_FINAL)
+                    .setTotalPrice("12.00")
+                    .setCurrencyCode("KZT")
+                    .build()
+            )
+            .addAllowedPaymentMethod(WalletConstants.PAYMENT_METHOD_CARD)
+            .addAllowedPaymentMethod(WalletConstants.PAYMENT_METHOD_TOKENIZED_CARD)
+            .setCardRequirements(
+                CardRequirements.newBuilder()
+                    .addAllowedCardNetworks(
+                        Arrays.asList(
+                            WalletConstants.CARD_NETWORK_VISA,
+                            WalletConstants.CARD_NETWORK_MASTERCARD
+                        )
+                    )
+                    .build()
+            )
+
+        val params = PaymentMethodTokenizationParameters.newBuilder()
+            .setPaymentMethodTokenizationType(
+                WalletConstants.PAYMENT_METHOD_TOKENIZATION_TYPE_PAYMENT_GATEWAY
+            )
+            .addParameter("gateway", "payboxmoney")
+            .addParameter("gatewayMerchantId", "paybox_pp")
+            .build()
+        request.setPaymentMethodTokenizationParameters(params)
+        return request.build()
+    }
+
+    fun confirmGooglePayment(url:String,token:String){
+        val paymentService =PaymentService()
+        paymentService.sendPaymentRequest(url, RequestBody("google_pay","WAY4",token))
     }
 
     private fun showError(text: String) {
@@ -316,9 +372,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                             return
                         val paymentData = PaymentData.getFromIntent(data)
                         val token = paymentData?.paymentMethodToken?.token ?: return
-                        Log.i("GOOGLE PAY TOKEN:","$token")
-                        // val paymentService = PaymentService()
-                        //  paymentService.sendPaymentToken(token)
+                        confirmGooglePayment(url,token)
                     }
 
                     Activity.RESULT_CANCELED -> {

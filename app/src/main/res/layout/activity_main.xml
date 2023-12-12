@@ -86,22 +86,26 @@
         app:layout_constraintEnd_toEndOf="@+id/buttonInitPayment"
         app:layout_constraintStart_toStartOf="@+id/buttonInitPayment"
         app:layout_constraintTop_toBottomOf="@+id/buttonAddCard" />
-    <Button
+
+    <com.google.android.gms.wallet.button.PayButton
         android:id="@+id/buttonPaymentByGoogle"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginHorizontal="50dp"
         android:layout_marginTop="16dp"
-        android:text="Оплата через Google Pay"
+        app:layout_constraintBottom_toTopOf="@+id/scrollView2"
         app:layout_constraintEnd_toEndOf="@+id/buttonInitPayment"
         app:layout_constraintStart_toStartOf="@+id/buttonInitPayment"
         app:layout_constraintTop_toBottomOf="@+id/buttonDeleteCard" />
 
     <ScrollView
+        android:id="@+id/scrollView2"
         android:layout_width="match_parent"
         android:layout_height="200dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
+
         <TextView
             android:id="@+id/outputTextView"
             android:layout_width="match_parent"
