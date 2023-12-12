@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity(), WebListener {
     lateinit var loaderView: View
     lateinit var outputTextView: TextView
     lateinit var paymentView: PaymentView
+
     //Необходимо заменить тестовый secretKey и merchantId на свой
     private val secretKey = "mQKzUjrDqdIxViLJ"
     private val merchantId = 550624
@@ -53,7 +54,7 @@ class MainActivity : AppCompatActivity(), WebListener {
     private val phone = "77012345678"
     lateinit var googlePayButton: PayButton
     private lateinit var googlePaymentsClient: PaymentsClient
-    lateinit var url :String
+    lateinit var url: String
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -65,10 +66,12 @@ class MainActivity : AppCompatActivity(), WebListener {
         googlePayButton = findViewById(R.id.buttonPaymentByGoogle)
         googlePaymentsClient = createGoogleApiClientForPay(this)
 
-        googlePayButton.initialize(ButtonOptions.newBuilder()
-            .setButtonType(ButtonType.CHECKOUT)
-            .setButtonTheme(ButtonTheme.LIGHT)
-            .build())
+        googlePayButton.initialize(
+            ButtonOptions.newBuilder()
+                .setButtonType(ButtonType.CHECKOUT)
+                .setButtonTheme(ButtonTheme.LIGHT)
+                .build()
+        )
 
         val sdk = PayboxSdk.initialize(merchantId, secretKey)
         sdk.setPaymentView(paymentView)
@@ -116,8 +119,8 @@ class MainActivity : AppCompatActivity(), WebListener {
             outputTextView.text = ""
             paymentView.visibility = View.VISIBLE
 
-            sdk.createPayment(amount, description, orderId, userId, extraParams) {
-                    payment, error -> Log.e("initPAY", error?.description ?: "")
+            sdk.createPayment(amount, description, orderId, userId, extraParams) { payment, error ->
+                Log.e("initPAY", error?.description ?: "")
                 paymentView.visibility = View.GONE
             }
         }
@@ -133,11 +136,18 @@ class MainActivity : AppCompatActivity(), WebListener {
             outputTextView.text = ""
             paymentView.visibility = View.VISIBLE
 
-            sdk.createCardPayment(amount, userId, cardToken, description, orderId, extraParams) {
-                    payment, error -> Log.e("initDirectPAY", error?.description ?: "")
+            sdk.createCardPayment(
+                amount,
+                userId,
+                cardToken,
+                description,
+                orderId,
+                extraParams
+            ) { payment, error ->
+                Log.e("initDirectPAY", error?.description ?: "")
 
-                sdk.createNonAcceptancePayment(payment?.paymentId ?: 0) {
-                    payment2, error2 ->  Log.e("makeDirectPAY", error2?.description ?: "")
+                sdk.createNonAcceptancePayment(payment?.paymentId ?: 0) { payment2, error2 ->
+                    Log.e("makeDirectPAY", error2?.description ?: "")
                     Log.e("initPAY", payment2?.status ?: "")
                 }
 
@@ -152,8 +162,7 @@ class MainActivity : AppCompatActivity(), WebListener {
             outputTextView.text = ""
             loaderView.visibility = View.VISIBLE
 
-            sdk.getAddedCards(userId){
-                    cards, error ->
+            sdk.getAddedCards(userId) { cards, error ->
                 run {
                     loaderView.visibility = View.GONE
 
@@ -199,8 +208,7 @@ class MainActivity : AppCompatActivity(), WebListener {
             outputTextView.text = ""
             paymentView.visibility = View.VISIBLE
 
-            sdk.addNewCard(userId,postUrl) {
-                    payment, error ->
+            sdk.addNewCard(userId, postUrl) { payment, error ->
                 run {
                     paymentView.visibility = View.GONE
 
@@ -238,8 +246,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                     outputTextView.text = ""
                     loaderView.visibility = View.VISIBLE
 
-                    sdk.removeAddedCard(cardId, userId) {
-                            card, error ->
+                    sdk.removeAddedCard(cardId, userId) { card, error ->
                         kotlin.run {
                             loaderView.visibility = View.GONE
 
@@ -272,7 +279,13 @@ class MainActivity : AppCompatActivity(), WebListener {
             val orderId = "1234"
             val userId = "1234"
             val extraParams = null
-            sdk.createGooglePayment(amount, description, orderId, userId, extraParams) { payment, error ->
+            sdk.createGooglePayment(
+                amount,
+                description,
+                orderId,
+                userId,
+                extraParams
+            ) { payment, error ->
                 url = payment?.redirectUrl.toString()
                 AutoResolveHelper.resolveTask<PaymentData>(
                     googlePaymentsClient.loadPaymentData(createPaymentDataRequest()),
@@ -327,9 +340,9 @@ class MainActivity : AppCompatActivity(), WebListener {
         return request.build()
     }
 
-    fun confirmGooglePayment(url:String,token:String){
-        val paymentService =PaymentService()
-        paymentService.sendPaymentRequest(url, RequestBody("google_pay","WAY4",token))
+    fun confirmGooglePayment(url: String, token: String) {
+        val paymentService = PaymentService()
+        paymentService.sendPaymentRequest(url, RequestBody("google_pay", "WAY4", token))
     }
 
     private fun showError(text: String) {
@@ -351,13 +364,14 @@ class MainActivity : AppCompatActivity(), WebListener {
     }
 
     override fun onBackPressed() {
-        if(paymentView.isVisible) {
+        if (paymentView.isVisible) {
             finish()
             startActivity(intent)
         } else {
             super.onBackPressed()
         }
     }
+
     companion object {
         const val REQUEST_CODE = 123
     }
@@ -372,12 +386,13 @@ class MainActivity : AppCompatActivity(), WebListener {
                             return
                         val paymentData = PaymentData.getFromIntent(data)
                         val token = paymentData?.paymentMethodToken?.token ?: return
-                        confirmGooglePayment(url,token)
+                        confirmGooglePayment(url, token)
                     }
 
                     Activity.RESULT_CANCELED -> {
 
                     }
+
                     AutoResolveHelper.RESULT_ERROR -> {
                         if (data == null)
                             return
