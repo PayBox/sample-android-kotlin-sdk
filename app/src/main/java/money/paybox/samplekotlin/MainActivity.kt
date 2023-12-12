@@ -52,8 +52,6 @@ class MainActivity : AppCompatActivity(), WebListener {
     //Если email или phone не указан, то выбор будет предложен на сайте платежного гейта
     private val email = "user@mail.com"
     private val phone = "77012345678"
-    lateinit var googlePayButton: PayButton
-    private lateinit var googlePaymentsClient: PaymentsClient
     lateinit var url: String
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,8 +61,16 @@ class MainActivity : AppCompatActivity(), WebListener {
         outputTextView = findViewById(R.id.outputTextView)
         paymentView = findViewById(R.id.paymentView)
         ViewCompat.setTranslationZ(paymentView, 10f)
-        googlePayButton = findViewById(R.id.buttonPaymentByGoogle)
-        googlePaymentsClient = createGoogleApiClientForPay(this)
+
+        val googlePayButton: PayButton = findViewById(R.id.buttonPaymentByGoogle)
+
+        val googlePaymentsClient = Wallet.getPaymentsClient(
+            this,
+            Wallet.WalletOptions.Builder()
+                .setEnvironment(WalletConstants.ENVIRONMENT_TEST)
+                .setTheme(WalletConstants.THEME_LIGHT)
+                .build()
+        )
 
         googlePayButton.initialize(
             ButtonOptions.newBuilder()
