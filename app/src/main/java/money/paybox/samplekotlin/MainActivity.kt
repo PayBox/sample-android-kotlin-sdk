@@ -1,7 +1,6 @@
 package money.paybox.samplekotlin
 
 import android.app.Activity
-import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
@@ -20,7 +19,6 @@ import com.google.android.gms.wallet.CardRequirements
 import com.google.android.gms.wallet.PaymentData
 import com.google.android.gms.wallet.PaymentDataRequest
 import com.google.android.gms.wallet.PaymentMethodTokenizationParameters
-import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.gms.wallet.TransactionInfo
 import com.google.android.gms.wallet.Wallet
 import com.google.android.gms.wallet.WalletConstants
@@ -79,7 +77,6 @@ class MainActivity : AppCompatActivity(), WebListener {
                 .build()
         )
 
-      //  val sdk = PayboxSdk.initialize(merchantId, secretKey)
         sdk.setPaymentView(paymentView)
         paymentView.listener = this
         sdk.config().testMode(false)  //По умолчанию тестовый режим включен
@@ -232,6 +229,28 @@ class MainActivity : AppCompatActivity(), WebListener {
             }
         }
 
+        findViewById<Button>(R.id.buttonGoogle).setOnClickListener {
+            val amount = 10f
+            val description = "some description"
+            val orderId = "1234"
+            val userId = "1234"
+            val extraParams = null
+            sdk.createGooglePayment(
+                amount,
+                description,
+                orderId,
+                userId,
+                extraParams
+            ) { payment, error ->
+                url = payment?.redirectUrl.toString()
+                AutoResolveHelper.resolveTask<PaymentData>(
+                    googlePaymentsClient.loadPaymentData(createPaymentDataRequest()),
+                    this,
+                    REQUEST_CODE
+                )
+            }
+        }
+
         //Удаление привязанной карты по ID
         findViewById<Button>(R.id.buttonDeleteCard).setOnClickListener {
             val userId = "1234"
@@ -302,15 +321,6 @@ class MainActivity : AppCompatActivity(), WebListener {
         }
     }
 
-    fun createGoogleApiClientForPay(context: Context): PaymentsClient =
-        Wallet.getPaymentsClient(
-            context,
-            Wallet.WalletOptions.Builder()
-                .setEnvironment(WalletConstants.ENVIRONMENT_TEST)
-                .setTheme(WalletConstants.THEME_LIGHT)
-                .build()
-        )
-
     private fun createPaymentDataRequest(): PaymentDataRequest {
         val request = PaymentDataRequest.newBuilder()
             .setPhoneNumberRequired(false)
@@ -344,11 +354,6 @@ class MainActivity : AppCompatActivity(), WebListener {
             .build()
         request.setPaymentMethodTokenizationParameters(params)
         return request.build()
-    }
-
-    fun confirmGooglePayment(url: String, token: String) {
-        val paymentService = PaymentService()
-        paymentService.sendPaymentRequest(url, RequestBody("google_pay", "WAY4", token))
     }
 
     private fun showError(text: String) {
@@ -393,26 +398,27 @@ class MainActivity : AppCompatActivity(), WebListener {
                         val paymentData = PaymentData.getFromIntent(data)
                         val token = paymentData?.paymentMethodToken?.token ?: return
                         sdk.confirmGooglePayment(url, token) { payment, error ->
-                            Log.i("safasf","$payment")
+                            if (payment != null) {
+                                showError("Ваш платеж успешно выполнен.")
+                            } else {
+                                error?.let { showError(it?.description) }
+                            }
                         }
-                  //      confirmGooglePayment(url,token)
                     }
-
                     Activity.RESULT_CANCELED -> {
-
+                        showError("Платеж был отменен")
                     }
-
                     AutoResolveHelper.RESULT_ERROR -> {
                         if (data == null)
                             return
                         val status = AutoResolveHelper.getStatusFromIntent(data)
                         Log.e("GOOGLE PAY", "Load payment data has failed with status: $status")
+                        status?.statusMessage?.let { showError(it) }
                     }
 
                     else -> {}
                 }
             }
-
             else -> {}
         }
     }
