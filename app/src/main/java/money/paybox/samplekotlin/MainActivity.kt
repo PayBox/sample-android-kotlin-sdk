@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity(), WebListener {
         val googlePaymentsClient = Wallet.getPaymentsClient(
             this,
             Wallet.WalletOptions.Builder()
-                .setEnvironment(WalletConstants.ENVIRONMENT_PRODUCTION)
+                .setEnvironment(WalletConstants.ENVIRONMENT_TEST)
                 .setTheme(WalletConstants.THEME_LIGHT)
                 .build()
         )
