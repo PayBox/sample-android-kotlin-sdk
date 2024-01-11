@@ -35,6 +35,7 @@ import money.paybox.payboxsdk.config.RequestMethod
 import money.paybox.payboxsdk.interfaces.WebListener
 import money.paybox.payboxsdk.view.PaymentView
 import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Arrays
 
 
@@ -75,6 +76,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                 .setButtonTheme(ButtonTheme.LIGHT)
                 .setButtonType(ButtonType.BUY)
                 .setCornerRadius(100)
+                .setAllowedPaymentMethods(JSONArray().put(сardPaymentMethod()).toString())
                 .build()
         )
 
@@ -230,28 +232,6 @@ class MainActivity : AppCompatActivity(), WebListener {
             }
         }
 
-        findViewById<Button>(R.id.buttonGoogle).setOnClickListener {
-            val amount = 10f
-            val description = "some description"
-            val orderId = "1234"
-            val userId = "1234"
-            val extraParams = null
-            sdk.createGooglePayment(
-                amount,
-                description,
-                orderId,
-                userId,
-                extraParams
-            ) { payment, error ->
-                url = payment?.redirectUrl.toString()
-                AutoResolveHelper.resolveTask<PaymentData>(
-                    googlePaymentsClient.loadPaymentData(createPaymentDataRequest()),
-                    this,
-                    REQUEST_CODE
-                )
-            }
-        }
-
         //Удаление привязанной карты по ID
         findViewById<Button>(R.id.buttonDeleteCard).setOnClickListener {
             val userId = "1234"
@@ -299,6 +279,7 @@ class MainActivity : AppCompatActivity(), WebListener {
 
             alert.show()
         }
+        // Создание платежа через Google Pay
         googlePayButton.setOnClickListener {
             val amount = 10f
             val description = "some description"
@@ -319,6 +300,41 @@ class MainActivity : AppCompatActivity(), WebListener {
                     REQUEST_CODE
                 )
             }
+        }
+    }
+
+    private val allowedCardNetworks = JSONArray(
+        listOf(
+            "AMEX",
+            "DISCOVER",
+            "INTERAC",
+            "JCB",
+            "MASTERCARD",
+            "VISA"
+        )
+    )
+
+    private val allowedCardAuthMethods = JSONArray(
+        listOf(
+            "PAN_ONLY",
+            "CRYPTOGRAM_3DS"
+        )
+    )
+
+    private fun сardPaymentMethod(): JSONObject {
+        return JSONObject().apply {
+
+            val parameters = JSONObject().apply {
+                put("allowedAuthMethods", allowedCardAuthMethods)
+                put("allowedCardNetworks", allowedCardNetworks)
+                put("billingAddressRequired", true)
+                put("billingAddressParameters", JSONObject().apply {
+                    put("format", "FULL")
+                })
+            }
+
+            put("type", "CARD")
+            put("parameters", parameters)
         }
     }
 
@@ -420,6 +436,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                     else -> {}
                 }
             }
+
             else -> {}
         }
     }
