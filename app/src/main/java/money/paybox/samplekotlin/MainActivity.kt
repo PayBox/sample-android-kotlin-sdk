@@ -35,6 +35,7 @@ import money.paybox.payboxsdk.config.RequestMethod
 import money.paybox.payboxsdk.interfaces.WebListener
 import money.paybox.payboxsdk.view.PaymentView
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import java.util.Arrays
 
@@ -53,6 +54,24 @@ class MainActivity : AppCompatActivity(), WebListener {
     private val phone = "77012345678"
     lateinit var url: String
     val sdk by lazy { PayboxSdk.initialize(merchantId, secretKey) }
+    private val allowedCardNetworks = JSONArray(
+        listOf(
+            "AMEX",
+            "DISCOVER",
+            "INTERAC",
+            "JCB",
+            "MASTERCARD",
+            "VISA"
+        )
+    )
+
+    private val allowedCardAuthMethods = JSONArray(
+        listOf(
+            "PAN_ONLY",
+            "CRYPTOGRAM_3DS"
+        )
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -76,7 +95,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                 .setButtonTheme(ButtonTheme.LIGHT)
                 .setButtonType(ButtonType.BUY)
                 .setCornerRadius(100)
-                .setAllowedPaymentMethods(JSONArray().put(сardPaymentMethod()).toString())
+                .setAllowedPaymentMethods(JSONArray().put(cardPaymentMethod()).toString())
                 .build()
         )
 
@@ -294,8 +313,11 @@ class MainActivity : AppCompatActivity(), WebListener {
                 extraParams
             ) { payment, error ->
                 url = payment?.redirectUrl.toString()
+                val paymentDataRequestJson = getPaymentDataRequest("10")
+                Log.i("sfds","${paymentDataRequestJson.toString()}")
+                val request = PaymentDataRequest.fromJson(paymentDataRequestJson.toString())
                 AutoResolveHelper.resolveTask<PaymentData>(
-                    googlePaymentsClient.loadPaymentData(createPaymentDataRequest()),
+                    googlePaymentsClient.loadPaymentData(request),
                     this,
                     REQUEST_CODE
                 )
@@ -303,27 +325,8 @@ class MainActivity : AppCompatActivity(), WebListener {
         }
     }
 
-    private val allowedCardNetworks = JSONArray(
-        listOf(
-            "AMEX",
-            "DISCOVER",
-            "INTERAC",
-            "JCB",
-            "MASTERCARD",
-            "VISA"
-        )
-    )
-
-    private val allowedCardAuthMethods = JSONArray(
-        listOf(
-            "PAN_ONLY",
-            "CRYPTOGRAM_3DS"
-        )
-    )
-
-    private fun сardPaymentMethod(): JSONObject {
+    private fun baseCardPaymentMethod(): JSONObject {
         return JSONObject().apply {
-
             val parameters = JSONObject().apply {
                 put("allowedAuthMethods", allowedCardAuthMethods)
                 put("allowedCardNetworks", allowedCardNetworks)
@@ -332,47 +335,59 @@ class MainActivity : AppCompatActivity(), WebListener {
                     put("format", "FULL")
                 })
             }
-
             put("type", "CARD")
             put("parameters", parameters)
         }
     }
+    private fun cardPaymentMethod(): JSONObject {
+        val cardPaymentMethod = baseCardPaymentMethod()
+        cardPaymentMethod.put("tokenizationSpecification", gatewayTokenizationSpecification())
 
-    private fun createPaymentDataRequest(): PaymentDataRequest {
-        val request = PaymentDataRequest.newBuilder()
-            .setPhoneNumberRequired(false)
-            .setEmailRequired(true)
-            .setTransactionInfo(
-                TransactionInfo.newBuilder()
-                    .setTotalPriceStatus(WalletConstants.TOTAL_PRICE_STATUS_FINAL)
-                    .setTotalPrice("12.00")
-                    .setCurrencyCode("KZT")
-                    .build()
-            )
-            .addAllowedPaymentMethod(WalletConstants.PAYMENT_METHOD_CARD)
-            .addAllowedPaymentMethod(WalletConstants.PAYMENT_METHOD_TOKENIZED_CARD)
-            .setCardRequirements(
-                CardRequirements.newBuilder()
-                    .addAllowedCardNetworks(
-                        Arrays.asList(
-                            WalletConstants.CARD_NETWORK_VISA,
-                            WalletConstants.CARD_NETWORK_MASTERCARD
-                        )
-                    )
-                    .build()
-            )
-
-        val params = PaymentMethodTokenizationParameters.newBuilder()
-            .setPaymentMethodTokenizationType(
-                WalletConstants.PAYMENT_METHOD_TOKENIZATION_TYPE_PAYMENT_GATEWAY
-            )
-            .addParameter("gateway", "payboxmoney")
-            .addParameter("gatewayMerchantId", "paybox_pp")
-            .build()
-        request.setPaymentMethodTokenizationParameters(params)
-        return request.build()
+        return cardPaymentMethod
     }
 
+    private fun gatewayTokenizationSpecification(): JSONObject {
+        return JSONObject().apply {
+            put("type", "PAYMENT_GATEWAY")
+            put("parameters", JSONObject(mapOf(
+                "gateway" to "payboxmoney",
+                "gatewayMerchantId" to "paybox_pp")))
+        }
+    }
+
+    private fun getTransactionInfo(price: String): JSONObject {
+        return JSONObject().apply {
+            put("totalPrice", price)
+            put("totalPriceStatus", "FINAL")
+            put("countryCode", "KZ")
+            put("currencyCode", "KZT")
+        }
+    }
+
+    private val merchantInfo: JSONObject =
+        JSONObject().put("merchantId", "BCR2DN6T57R772SF")
+
+    private val baseRequest = JSONObject().apply {
+        put("apiVersion", 2)
+        put("apiVersionMinor", 0)
+    }
+    fun getPaymentDataRequest(price: String): JSONObject? {
+        try {
+            return baseRequest.apply {
+                put("allowedPaymentMethods", JSONArray().put(cardPaymentMethod()))
+                put("transactionInfo", getTransactionInfo(price))
+                put("merchantInfo", merchantInfo)
+                val shippingAddressParameters = JSONObject().apply {
+                    put("phoneNumberRequired", false)
+                    put("allowedCountryCodes", JSONArray(listOf("RU", "KZ")))
+                }
+                put("shippingAddressParameters", shippingAddressParameters)
+                put("shippingAddressRequired", true)
+            }
+        } catch (e: JSONException) {
+            return null
+        }
+    }
     private fun showError(text: String) {
         val snackbar: Snackbar = Snackbar.make(
             findViewById(android.R.id.content),
@@ -413,7 +428,13 @@ class MainActivity : AppCompatActivity(), WebListener {
                         if (data == null)
                             return
                         val paymentData = PaymentData.getFromIntent(data)
-                        val token = paymentData?.paymentMethodToken?.token ?: return
+
+                        val jsonObject = JSONObject(paymentData?.toJson())
+                        val paymentMethodData = jsonObject.getJSONObject("paymentMethodData")
+                        val tokenizationData = paymentMethodData.getJSONObject("tokenization" +
+                                "Data")
+
+                        val token = tokenizationData.getString("token")
                         sdk.confirmGooglePayment(url, token) { payment, error ->
                             if (payment != null) {
                                 showError("Ваш платеж успешно выполнен.")
@@ -432,7 +453,6 @@ class MainActivity : AppCompatActivity(), WebListener {
                         Log.e("GOOGLE PAY", "Load payment data has failed with status: $status")
                         status?.statusMessage?.let { showError(it) }
                     }
-
                     else -> {}
                 }
             }
