@@ -91,13 +91,13 @@
         android:id="@+id/buttonPaymentByGoogle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@+id/scrollView2"
+        app:layout_constraintBottom_toTopOf="@+id/scrollView"
         app:layout_constraintEnd_toEndOf="@+id/buttonInitPayment"
         app:layout_constraintStart_toStartOf="@+id/buttonInitPayment"
         app:layout_constraintTop_toBottomOf="@+id/buttonDeleteCard" />
 
     <ScrollView
-        android:id="@+id/scrollView2"
+        android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="200dp"
         app:layout_constraintBottom_toBottomOf="parent"
