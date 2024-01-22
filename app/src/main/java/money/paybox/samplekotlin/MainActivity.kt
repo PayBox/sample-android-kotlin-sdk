@@ -15,11 +15,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import com.google.android.gms.wallet.AutoResolveHelper
-import com.google.android.gms.wallet.CardRequirements
 import com.google.android.gms.wallet.PaymentData
 import com.google.android.gms.wallet.PaymentDataRequest
-import com.google.android.gms.wallet.PaymentMethodTokenizationParameters
-import com.google.android.gms.wallet.TransactionInfo
 import com.google.android.gms.wallet.Wallet
 import com.google.android.gms.wallet.WalletConstants
 import com.google.android.gms.wallet.button.ButtonConstants.ButtonTheme
@@ -37,7 +34,6 @@ import money.paybox.payboxsdk.view.PaymentView
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import java.util.Arrays
 
 
 class MainActivity : AppCompatActivity(), WebListener {
@@ -48,6 +44,12 @@ class MainActivity : AppCompatActivity(), WebListener {
     //Необходимо заменить тестовый secretKey и merchantId на свой
     private val secretKey = "mQKzUjrDqdIxViLJ"
     private val merchantId = 550624
+    private val googleMerchantId = "BCR2DN6T57R772SF"
+    private val gateway = "payboxmoney"
+    private val gatewayMerchantId = "paybox_pp"
+    private val kzCountryCode = "KZ"
+    private val ruCountryCode = "RU"
+    private val currency = "KZT"
 
     //Если email или phone не указан, то выбор будет предложен на сайте платежного гейта
     private val email = "user@mail.com"
@@ -101,7 +103,7 @@ class MainActivity : AppCompatActivity(), WebListener {
 
         sdk.setPaymentView(paymentView)
         paymentView.listener = this
-        sdk.config().testMode(false)  //По умолчанию тестовый режим включен
+        sdk.config().testMode(true)  //По умолчанию тестовый режим включен
         //Выбор региона
         sdk.config().setRegion(Region.DEFAULT) //По умолчанию установлен Region.DEFAULT
         //Выбор платежной системы:
@@ -131,7 +133,7 @@ class MainActivity : AppCompatActivity(), WebListener {
         sdk.config().setClearingUrl("http://test.paybox.kz/")
         sdk.config().setRequestMethod(RequestMethod.GET)
         //Для выбора Frame вместо платежной страницы
-        sdk.config().setFrameRequired(false) //false по умолчанию
+        sdk.config().setFrameRequired(true) //false по умолчанию
 
         //Инициализация нового платежа
         findViewById<Button>(R.id.buttonInitPayment).setOnClickListener {
@@ -314,7 +316,6 @@ class MainActivity : AppCompatActivity(), WebListener {
             ) { payment, error ->
                 url = payment?.redirectUrl.toString()
                 val paymentDataRequestJson = getPaymentDataRequest("10")
-                Log.i("sfds","${paymentDataRequestJson.toString()}")
                 val request = PaymentDataRequest.fromJson(paymentDataRequestJson.toString())
                 AutoResolveHelper.resolveTask<PaymentData>(
                     googlePaymentsClient.loadPaymentData(request),
@@ -339,6 +340,7 @@ class MainActivity : AppCompatActivity(), WebListener {
             put("parameters", parameters)
         }
     }
+
     private fun cardPaymentMethod(): JSONObject {
         val cardPaymentMethod = baseCardPaymentMethod()
         cardPaymentMethod.put("tokenizationSpecification", gatewayTokenizationSpecification())
@@ -349,9 +351,14 @@ class MainActivity : AppCompatActivity(), WebListener {
     private fun gatewayTokenizationSpecification(): JSONObject {
         return JSONObject().apply {
             put("type", "PAYMENT_GATEWAY")
-            put("parameters", JSONObject(mapOf(
-                "gateway" to "payboxmoney",
-                "gatewayMerchantId" to "paybox_pp")))
+            put(
+                "parameters", JSONObject(
+                    mapOf(
+                        "gateway" to gateway,
+                        "gatewayMerchantId" to gatewayMerchantId
+                    )
+                )
+            )
         }
     }
 
@@ -359,18 +366,19 @@ class MainActivity : AppCompatActivity(), WebListener {
         return JSONObject().apply {
             put("totalPrice", price)
             put("totalPriceStatus", "FINAL")
-            put("countryCode", "KZ")
-            put("currencyCode", "KZT")
+            put("countryCode", kzCountryCode)
+            put("currencyCode", currency)
         }
     }
 
     private val merchantInfo: JSONObject =
-        JSONObject().put("merchantId", "BCR2DN6T57R772SF")
+        JSONObject().put("merchantId", googleMerchantId)
 
     private val baseRequest = JSONObject().apply {
         put("apiVersion", 2)
         put("apiVersionMinor", 0)
     }
+
     fun getPaymentDataRequest(price: String): JSONObject? {
         try {
             return baseRequest.apply {
@@ -379,7 +387,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                 put("merchantInfo", merchantInfo)
                 val shippingAddressParameters = JSONObject().apply {
                     put("phoneNumberRequired", false)
-                    put("allowedCountryCodes", JSONArray(listOf("RU", "KZ")))
+                    put("allowedCountryCodes", JSONArray(listOf(kzCountryCode, ruCountryCode)))
                 }
                 put("shippingAddressParameters", shippingAddressParameters)
                 put("shippingAddressRequired", true)
@@ -388,6 +396,7 @@ class MainActivity : AppCompatActivity(), WebListener {
             return null
         }
     }
+
     private fun showError(text: String) {
         val snackbar: Snackbar = Snackbar.make(
             findViewById(android.R.id.content),
@@ -428,12 +437,11 @@ class MainActivity : AppCompatActivity(), WebListener {
                         if (data == null)
                             return
                         val paymentData = PaymentData.getFromIntent(data)
-
                         val jsonObject = JSONObject(paymentData?.toJson())
                         val paymentMethodData = jsonObject.getJSONObject("paymentMethodData")
-                        val tokenizationData = paymentMethodData.getJSONObject("tokenization" +
-                                "Data")
-
+                        val tokenizationData = paymentMethodData.getJSONObject(
+                            "tokenization" + "Data"
+                        )
                         val token = tokenizationData.getString("token")
                         sdk.confirmGooglePayment(url, token) { payment, error ->
                             if (payment != null) {
@@ -443,9 +451,11 @@ class MainActivity : AppCompatActivity(), WebListener {
                             }
                         }
                     }
+
                     Activity.RESULT_CANCELED -> {
                         showError("Платеж был отменен")
                     }
+
                     AutoResolveHelper.RESULT_ERROR -> {
                         if (data == null)
                             return
@@ -453,6 +463,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                         Log.e("GOOGLE PAY", "Load payment data has failed with status: $status")
                         status?.statusMessage?.let { showError(it) }
                     }
+
                     else -> {}
                 }
             }
