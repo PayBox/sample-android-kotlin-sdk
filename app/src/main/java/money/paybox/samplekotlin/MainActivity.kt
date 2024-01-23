@@ -25,7 +25,6 @@ import com.google.android.gms.wallet.button.ButtonOptions
 import com.google.android.gms.wallet.button.PayButton
 import com.google.android.material.snackbar.Snackbar
 import money.paybox.payboxsdk.PayboxSdk
-import money.paybox.payboxsdk.api.Params
 import money.paybox.payboxsdk.config.Language
 import money.paybox.payboxsdk.config.PaymentSystem
 import money.paybox.payboxsdk.config.Region
@@ -55,7 +54,7 @@ class MainActivity : AppCompatActivity(), WebListener {
     //Если email или phone не указан, то выбор будет предложен на сайте платежного гейта
     private val email = "user@mail.com"
     private val phone = "77012345678"
-    private var url: String?=null
+    private var url: String? = null
     val sdk by lazy { PayboxSdk.initialize(merchantId, secretKey) }
     private val allowedCardNetworks = JSONArray(
         listOf(
@@ -315,7 +314,6 @@ class MainActivity : AppCompatActivity(), WebListener {
                 userId,
                 extraParams
             ) { payment, error ->
-                Log.i("dasf11","$url")
                 url = payment?.redirectUrl.toString()
                 val paymentDataRequestJson = getPaymentDataRequest("10")
                 val request = PaymentDataRequest.fromJson(paymentDataRequestJson.toString())
