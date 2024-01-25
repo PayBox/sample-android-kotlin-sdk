@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity(), WebListener {
     //Если email или phone не указан, то выбор будет предложен на сайте платежного гейта
     private val email = "user@mail.com"
     private val phone = "77012345678"
-    private var url: String? = null
+    private var paymentId: String? = null
     val sdk by lazy { PayboxSdk.initialize(merchantId, secretKey) }
     private val allowedCardNetworks = JSONArray(
         listOf(
@@ -313,8 +313,8 @@ class MainActivity : AppCompatActivity(), WebListener {
                 orderId,
                 userId,
                 extraParams
-            ) { payment, error ->
-                url = payment?.redirectUrl.toString()
+            ) { paymentId, error ->
+                this.paymentId = paymentId
                 val paymentDataRequestJson = getPaymentDataRequest("10")
                 val request = PaymentDataRequest.fromJson(paymentDataRequestJson.toString())
                 AutoResolveHelper.resolveTask<PaymentData>(
@@ -444,12 +444,12 @@ class MainActivity : AppCompatActivity(), WebListener {
                             "tokenization" + "Data"
                         )
                         val token = tokenizationData.getString("token")
-                        url?.let {
+                        paymentId?.let {
                             sdk.confirmGooglePayment(it, token) { payment, error ->
                                 if (payment?.status == OK) {
                                     showError("Ваш платеж успешно выполнен")
                                 } else {
-                                    error?.let { showError(it?.description) }
+                                    error?.let { showError(it.description) }
                                 }
                             }
                         }
