@@ -34,7 +34,7 @@ allprojects {
 
 ``` groovy
 dependencies {
-	implementation 'com.github.PayBox:kotlin-paybox-sdk:0.10.1'
+	implementation 'com.github.PayBox:kotlin-paybox-sdk:0.11.0'
 }
 ```
 
