@@ -54,8 +54,10 @@ class MainActivity : AppCompatActivity(), WebListener {
     //Если email или phone не указан, то выбор будет предложен на сайте платежного гейта
     private val email = "user@mail.com"
     private val phone = "77012345678"
+
     private var paymentId: String? = null
     val sdk by lazy { PayboxSdk.initialize(merchantId, secretKey) }
+    
     private val allowedCardNetworks = JSONArray(
         listOf(
             "AMEX",
@@ -103,7 +105,7 @@ class MainActivity : AppCompatActivity(), WebListener {
 
         sdk.setPaymentView(paymentView)
         paymentView.listener = this
-        sdk.config().testMode(true)  //По умолчанию тестовый режим включен
+        sdk.config().testMode(false)  //По умолчанию тестовый режим включен
         //Выбор региона
         sdk.config().setRegion(Region.DEFAULT) //По умолчанию установлен Region.DEFAULT
         //Выбор платежной системы:
@@ -387,7 +389,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                 put("merchantInfo", merchantInfo)
                 val shippingAddressParameters = JSONObject().apply {
                     put("phoneNumberRequired", false)
-                    put("allowedCountryCodes", JSONArray(listOf(kzCountryCode, ruCountryCode)))
+                    put("allowedCountryCodes", JSONArray(listOf(ruCountryCode, kzCountryCode)))
                 }
                 put("shippingAddressParameters", shippingAddressParameters)
                 put("shippingAddressRequired", true)
@@ -444,6 +446,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                             "tokenization" + "Data"
                         )
                         val token = tokenizationData.getString("token")
+                        
                         paymentId?.let {
                             sdk.confirmGooglePayment(it, token) { payment, error ->
                                 if (payment?.status == OK) {
@@ -463,6 +466,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                         if (data == null)
                             return
                         val status = AutoResolveHelper.getStatusFromIntent(data)
+                        
                         status?.statusMessage?.let { showError(it) }
                     }
 
