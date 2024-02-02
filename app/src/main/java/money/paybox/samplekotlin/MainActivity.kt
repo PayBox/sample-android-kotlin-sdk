@@ -42,8 +42,8 @@ class MainActivity : AppCompatActivity(), WebListener {
     lateinit var paymentView: PaymentView
 
     //Необходимо заменить тестовый secretKey и merchantId на свой
-    private val secretKey = "mQKzUjrDqdIxViLJ"
-    private val merchantId = 550624
+    private val secretKey = "UnPLLvWsuXPyC3wd"
+    private val merchantId = 503623
     private val googleMerchantId = "BCR2DN6T57R772SF"
     private val gateway = "payboxmoney"
     private val gatewayMerchantId = "paybox_pp"
@@ -54,10 +54,10 @@ class MainActivity : AppCompatActivity(), WebListener {
     //Если email или phone не указан, то выбор будет предложен на сайте платежного гейта
     private val email = "user@mail.com"
     private val phone = "77012345678"
-    lateinit var url: String
 
+    private var paymentId: String? = null
     val sdk by lazy { PayboxSdk.initialize(merchantId, secretKey) }
-
+    
     private val allowedCardNetworks = JSONArray(
         listOf(
             "AMEX",
@@ -148,8 +148,8 @@ class MainActivity : AppCompatActivity(), WebListener {
             outputTextView.text = ""
             paymentView.visibility = View.VISIBLE
 
-            sdk.createPayment(amount, description, orderId, userId, extraParams) {
-                    payment, error -> Log.e("initPAY", error?.description ?: "")
+            sdk.createPayment(amount, description, orderId, userId, extraParams) { payment, error ->
+                Log.e("initPAY", error?.description ?: "")
                 paymentView.visibility = View.GONE
             }
         }
@@ -165,8 +165,15 @@ class MainActivity : AppCompatActivity(), WebListener {
             outputTextView.text = ""
             paymentView.visibility = View.VISIBLE
 
-            sdk.createCardPayment(amount, userId, cardToken, description, orderId, extraParams) {
-                    payment, error -> Log.e("initDirectPAY", error?.description ?: "")
+            sdk.createCardPayment(
+                amount,
+                userId,
+                cardToken,
+                description,
+                orderId,
+                extraParams
+            ) { payment, error ->
+                Log.e("initDirectPAY", error?.description ?: "")
 
                 sdk.createNonAcceptancePayment(payment?.paymentId ?: 0) { payment2, error2 ->
                     Log.e("makeDirectPAY", error2?.description ?: "")
@@ -184,8 +191,7 @@ class MainActivity : AppCompatActivity(), WebListener {
             outputTextView.text = ""
             loaderView.visibility = View.VISIBLE
 
-            sdk.getAddedCards(userId){
-                    cards, error ->
+            sdk.getAddedCards(userId) { cards, error ->
                 run {
                     loaderView.visibility = View.GONE
 
@@ -231,8 +237,7 @@ class MainActivity : AppCompatActivity(), WebListener {
             outputTextView.text = ""
             paymentView.visibility = View.VISIBLE
 
-            sdk.addNewCard(userId,postUrl) {
-                    payment, error ->
+            sdk.addNewCard(userId, postUrl) { payment, error ->
                 run {
                     paymentView.visibility = View.GONE
 
@@ -270,8 +275,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                     outputTextView.text = ""
                     loaderView.visibility = View.VISIBLE
 
-                    sdk.removeAddedCard(cardId, userId) {
-                            card, error ->
+                    sdk.removeAddedCard(cardId, userId) { card, error ->
                         kotlin.run {
                             loaderView.visibility = View.GONE
 
@@ -311,8 +315,8 @@ class MainActivity : AppCompatActivity(), WebListener {
                 orderId,
                 userId,
                 extraParams
-            ) { payment, error ->
-                url = payment?.redirectUrl.toString()
+            ) { paymentId, error ->
+                this.paymentId = paymentId
                 val paymentDataRequestJson = getPaymentDataRequest("10")
                 val request = PaymentDataRequest.fromJson(paymentDataRequestJson.toString())
                 AutoResolveHelper.resolveTask<PaymentData>(
@@ -424,6 +428,7 @@ class MainActivity : AppCompatActivity(), WebListener {
 
     companion object {
         const val REQUEST_CODE = 123
+        const val OK = "ok"
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -435,14 +440,22 @@ class MainActivity : AppCompatActivity(), WebListener {
                         if (data == null)
                             return
                         val paymentData = PaymentData.getFromIntent(data)
-
                         val jsonObject = JSONObject(paymentData?.toJson())
                         val paymentMethodData = jsonObject.getJSONObject("paymentMethodData")
                         val tokenizationData = paymentMethodData.getJSONObject(
-                            "tokenization" +
-                                    "Data"
+                            "tokenization" + "Data"
                         )
                         val token = tokenizationData.getString("token")
+                        
+                        paymentId?.let {
+                            sdk.confirmGooglePayment(it, token) { payment, error ->
+                                if (payment?.status == OK) {
+                                    showError("Ваш платеж успешно выполнен")
+                                } else {
+                                    error?.let { showError(it.description) }
+                                }
+                            }
+                        }
                     }
 
                     Activity.RESULT_CANCELED -> {
@@ -453,7 +466,7 @@ class MainActivity : AppCompatActivity(), WebListener {
                         if (data == null)
                             return
                         val status = AutoResolveHelper.getStatusFromIntent(data)
-                        Log.e("GOOGLE PAY", "Load payment data has failed with status: $status")
+                        
                         status?.statusMessage?.let { showError(it) }
                     }
 
