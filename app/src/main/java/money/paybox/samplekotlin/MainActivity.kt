@@ -42,8 +42,8 @@ class MainActivity : AppCompatActivity(), WebListener {
     lateinit var paymentView: PaymentView
 
     //Необходимо заменить тестовый secretKey и merchantId на свой
-    private val secretKey = "mQKzUjrDqdIxViLJ"
-    private val merchantId = 550624
+    private val secretKey = "UnPLLvWsuXPyC3wd"
+    private val merchantId = 503623
     private val googleMerchantId = "BCR2DN6T57R772SF"
     private val gateway = "payboxmoney"
     private val gatewayMerchantId = "paybox_pp"

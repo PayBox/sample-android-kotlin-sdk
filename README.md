@@ -266,7 +266,7 @@ dependencies {
    }
 ```
 
-- Внимание: Метод `createCardPayment` с использованием `cardId` является устаревшим.
+> *Внимание: Метод `createCardPayment` с использованием `cardId` является устаревшим.*
 
 ### Для оплаты созданного платежа:
 
@@ -527,7 +527,7 @@ dependencies {
       при разрешении запроса.
 
 
-### 9. Подтверждение платеж:
+### 9. Подтверждение платежа:
 
 ``` kotlin
  sdk.confirmGooglePayment(url, token) { payment, error -> }
