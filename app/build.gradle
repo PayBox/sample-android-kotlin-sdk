@@ -40,7 +40,7 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.1'
 
     //Указываем зависимость на Kotlin SDK
-    implementation 'com.github.paybox:kotlin-paybox-sdk:0.11.0'
+    implementation 'com.github.paybox:kotlin-paybox-sdk:0.11.2'
 
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'

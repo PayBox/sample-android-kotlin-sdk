@@ -15,6 +15,7 @@
 - Получение информации/статуса платежа
 - Добавление карт/Удаление карт
 - Оплата добавленными картами
+- Безакцептные платежи
 - Создание платежа с Google Pay
 
 # **Установка:**
@@ -34,7 +35,7 @@ allprojects {
 
 ``` groovy
 dependencies {
-	implementation 'com.github.PayBox:kotlin-paybox-sdk:0.11.0'
+	implementation 'com.github.PayBox:kotlin-paybox-sdk:0.11.2'
 }
 ```
 
